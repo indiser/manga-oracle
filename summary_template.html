@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    @page { size: A4; margin: 0.5in; }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #000; }
+
+    /* --- DASHBOARD HEADER --- */
+    .dashboard-container {
+        border: 2px solid #000;
+        margin-bottom: 20px;
+        background-color: #f8f9fa;
+    }
+    .db-header {
+        background-color: #121C42; color: white;
+        padding: 10px; font-size: 14px; font-weight: bold; text-align: center;
+        text-transform: uppercase; letter-spacing: 2px;
+    }
+    .db-stats-row { width: 100%; border-collapse: collapse; }
+    .db-stat-cell {
+        border: 1px solid #ccc; padding: 10px; text-align: center; width: 25%;
+    }
+    .stat-label { font-size: 9px; text-transform: uppercase; color: #666; margin-bottom: 5px; }
+    .stat-value { font-size: 18px; font-weight: bold; color: #000; }
+    
+    /* --- RISK DISTRIBUTION BAR --- */
+    .dist-container { margin: 20px 0; border: 1px solid #000; height: 20px; width: 100%; display: flex; }
+    .dist-segment { height: 100%; float: left; text-align: center; color: white; font-weight: bold; font-size: 9px; line-height: 20px; }
+
+    /* --- THE "KILL LIST" TABLE --- */
+    .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9px; }
+    .data-table th { background-color: #444; color: white; padding: 6px; text-align: left; text-transform: uppercase; }
+    .data-table td { border-bottom: 1px solid #ddd; padding: 6px; }
+    .row-high { background-color: #fff0f0; } /* Light Red tint */
+    .row-med { background-color: #fffbef; }  /* Light Yellow tint */
+    .row-low { background-color: #f0fff4; }  /* Light Green tint */
+
+    /* --- STRATEGY BOXES --- */
+    .strategy-section { margin-top: 20px; }
+    .strat-box { 
+        border-left: 4px solid #000; padding: 10px; margin-bottom: 10px; background-color: #eee; 
+    }
+    .strat-title { font-weight: bold; font-size: 11px; margin-bottom: 5px; text-transform: uppercase; }
+    
+    .footer { position: fixed; bottom: 0; right: 0; font-size: 8px; color: #888; }
+</style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <div class="db-header">Portfolio Intelligence Summary</div>
+        <table class="db-stats-row">
+            <tr>
+                <td class="db-stat-cell">
+                    <div class="stat-label">Total Assets</div>
+                    <div class="stat-value">{{ total_count }}</div>
+                </td>
+                <td class="db-stat-cell">
+                    <div class="stat-label">Portfolio Risk Avg</div>
+                    <div class="stat-value" style="color: {{ avg_color }};">{{ avg_risk }}%</div>
+                </td>
+                <td class="db-stat-cell">
+                    <div class="stat-label">Critical Alerts</div>
+                    <div class="stat-value" style="color: #C73E1D;">{{ high_risk_count }}</div>
+                </td>
+                <td class="db-stat-cell">
+                    <div class="stat-label">Safe Assets</div>
+                    <div class="stat-value" style="color: #3B7A57;">{{ low_risk_count }}</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="font-size: 9px; font-weight: bold; margin-bottom: 2px;">RISK SPECTRUM DISTRIBUTION:</div>
+    <div style="width: 100%; height: 20px; border: 1px solid #000; background-color: #eee;">
+        {% if low_pct > 0 %}<div style="width: {{ low_pct }}%; background-color: #3B7A57; height: 100%; float: left;"></div>{% endif %}
+        {% if med_pct > 0 %}<div style="width: {{ med_pct }}%; background-color: #F18F01; height: 100%; float: left;"></div>{% endif %}
+        {% if high_pct > 0 %}<div style="width: {{ high_pct }}%; background-color: #C73E1D; height: 100%; float: left;"></div>{% endif %}
+    </div>
+    <div style="font-size: 8px; color: #666; margin-bottom: 20px;">
+        <span style="color: #3B7A57;">■ LOW</span> 
+        <span style="color: #F18F01;">■ MODERATE</span> 
+        <span style="color: #C73E1D;">■ CRITICAL</span>
+    </div>
+
+    <div class="strategy-section">
+        <div style="font-weight: bold; border-bottom: 2px solid #000; margin-bottom: 10px;">EXECUTIVE DIRECTIVE</div>
+        
+        <div class="strat-box" style="border-color: #C73E1D;">
+            <div class="strat-title" style="color: #C73E1D;">🚨 IMMEDIATE TRIAGE (High Risk)</div>
+            <div>{{ txt_triage }}</div>
+        </div>
+
+        <div class="strat-box" style="border-color: #F18F01;">
+            <div class="strat-title" style="color: #F18F01;">⚠️ STABILIZATION PROTOCOLS (Moderate Risk)</div>
+            <div>{{ txt_stabilize }}</div>
+        </div>
+        
+        <div class="strat-box" style="border-color: #3B7A57;">
+            <div class="strat-title" style="color: #3B7A57;">🛡️ ASSET PROTECTION (Low Risk)</div>
+            <div>{{ txt_protect }}</div>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px; margin-bottom: 20px;">
+        <div style="font-weight: bold; border-bottom: 2px solid #000; margin-bottom: 10px;">GLOBAL RISK DRIVERS (TOP 10 FACTORS)</div>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+            <tr style="background-color: #121C42; color: white;">
+                <th style="padding: 5px; text-align: left;">FEATURE NAME</th>
+                <th style="padding: 5px; text-align: left;">IMPORTANCE (%)</th>
+                <th style="padding: 5px; text-align: left;">IMPACT BAR</th>
+            </tr>
+            {% for item in feature_stats %}
+            <tr style="border-bottom: 1px solid #ddd;">
+                <td style="padding: 5px; font-weight: bold;">{{ item.name }}</td>
+                <td style="padding: 5px;">{{ item.pct }}%</td>
+                <td style="padding: 5px; width: 40%; vertical-align: middle;">
+                    <table style="width: 100%; height: 10px; border: 1px solid #ccc; border-collapse: collapse;">
+                        <tr>
+                            <td style="width: {{ item.width }}%; background-color: #2E86AB; height: 10px; padding: 0;"></td>
+                            
+                            <td style="width: {{ 100 - item.width }}%; background-color: #eee; height: 10px; padding: 0;"></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <div style="font-size: 8px; color: #666; margin-top: 5px;">
+            * These weights represent the global impact of each variable across the entire dataset.
+        </div>
+    </div>
+
+    <div style="margin-top: 20px; margin-bottom: 20px;">
+        <div style="font-weight: bold; border-bottom: 2px solid #000; margin-bottom: 10px;">LIFE EXPECTANCY MODIFIERS (MARKET PHYSICS)</div>
+        
+        <div style="font-size: 10px; margin-bottom: 10px; background-color: #eee; padding: 5px;">
+            <b>BASELINE MARKET LIFESPAN:</b> {{ baseline_life }}
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th width="40%">FACTOR</th>
+                    <th width="30%">IMPACT</th>
+                    <th width="30%">EFFECT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in weibull_stats %}
+                <tr>
+                    <td style="font-weight: bold; color: #333;">{{ item.name }}</td>
+                    <td style="font-weight: bold; color: {{ item.color }}; font-size: 11px;">{{ item.impact }}</td>
+                    <td style="font-size: 8px; color: #666; text-transform: uppercase;">{{ item.desc }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div style="font-size: 8px; color: #999; margin-top: 5px; font-style: italic;">
+            * Factors derived from Weibull AFT analysis. Shows how specific attributes accelerate or decelerate cancellation.
+        </div>
+    </div>
+    
+    <pdf:nextpage />
+
+    <div style="margin-top: 30px; margin-bottom: 20px;">
+        <div style="font-weight: bold; border-bottom: 2px solid #000; margin-bottom: 10px;">MARKET SECTOR ANALYSIS (MEDIAN LIFESPAN)</div>
+        
+        <table style="width: 100%; text-align: center; border-collapse: separate; border-spacing: 5px;">
+            <tr>
+                {% for item in demo_stats %}
+                <td style="background-color: #eee; border: 1px solid #ccc; padding: 10px; width: 25%;">
+                    <div style="font-size: 10px; font-weight: bold; color: {{ item.color }}; text-transform: uppercase;">
+                        {{ item.name }}
+                    </div>
+                    <div style="font-size: 16px; font-weight: bold; margin-top: 5px;">
+                        {{ item.life }}
+                    </div>
+                </td>
+                {% endfor %}
+            </tr>
+        </table>
+        <div style="font-size: 9px; color: #666; font-style: italic; margin-top: 5px;">
+            * Analysis of historical data shows 'Shounen' sector has highest turnover (shortest expected lifespan).
+        </div>
+    </div>
+    
+    <div style="font-weight: bold; border-bottom: 2px solid #000; margin-bottom: 10px; font-size: 14px;">
+        FULL ASSET REGISTER (RANKED BY RISK)
+    </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th width="10%">RANK</th>
+                <th width="50%">MANGA TITLE</th>
+                <th width="20%">RISK PROBABILITY</th>
+                <th width="20%">STATUS</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in sorted_manga %}
+            <tr class="{{ item.row_class }}">
+                <td>#{{ loop.index }}</td>
+                <td><b>{{ item.title }}</b></td>
+                <td><b>{{ "%.1f"|format(item.prob * 100) }}%</b></td>
+                <td style="color: {{ item.color }}; font-weight: bold;">{{ item.status }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Generated by Manga Survival Engine v2.0 // {{ date }}
+    </div>
+
+</body>
+</html>
