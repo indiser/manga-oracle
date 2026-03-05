@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    @page { size: A4; margin: 0.5in; }
+    body { font-family: 'Courier New', Courier, monospace; color: #333; }
+    
+    .header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 30px; }
+    .title { font-size: 24px; font-weight: bold; letter-spacing: -1px; }
+    .subtitle { font-size: 10px; color: #666; text-transform: uppercase; }
+    
+    .big-number-box {
+        text-align: center; padding: 20px; background-color: #f4f4f4; 
+        border: 1px solid #ddd; margin-bottom: 30px;
+    }
+    .net-label { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; }
+    .net-value { font-size: 36px; font-weight: bold; color: {{ verdict_color }}; margin: 10px 0; }
+    
+    .ledger-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 12px; }
+    .ledger-table th { text-align: left; border-bottom: 2px solid #000; padding: 8px; }
+    .ledger-table td { border-bottom: 1px solid #ddd; padding: 12px 8px; }
+    .amount { text-align: right; font-weight: bold; font-family: Helvetica, sans-serif; }
+    
+    .pos { color: #3B7A57; }
+    .neg { color: #C73E1D; }
+    
+    .kpi-row { width: 100%; margin-top: 20px; }
+    .kpi-box { width: 30%; float: left; text-align: center; border: 1px solid #ccc; padding: 10px; margin-right: 3%; }
+    .kpi-val { font-size: 18px; font-weight: bold; display: block; }
+    .kpi-lbl { font-size: 8px; text-transform: uppercase; color: #888; }
+    
+    .footer { position: fixed; bottom: 0; right: 0; font-size: 8px; color: #aaa; }
+</style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="title">ALGORITHMIC P&L STATEMENT</div>
+        <div class="subtitle">FINANCIAL IMPACT ANALYSIS // {{ date }} // MODEL: {{ data.model_name }}</div>
+    </div>
+
+    <div class="big-number-box">
+        <div class="net-label">Net Projected Impact</div>
+        <div class="net-value">{{ fmt_net }}</div>
+        <div style="font-size: 10px; color: {{ verdict_color }}; font-weight: bold;">
+            VERDICT: {{ verdict }}
+        </div>
+    </div>
+
+    <div style="font-weight: bold; margin-bottom: 10px;">LEDGER BREAKDOWN</div>
+    <table class="ledger-table">
+        <thead>
+            <tr>
+                <th>CATEGORY</th>
+                <th>DESCRIPTION</th>
+                <th style="text-align: right;">IMPACT (USD)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><b>OPERATIONAL SAVINGS</b></td>
+                <td>Cost avoidance from correctly identifying flops ({{ data.correct_kills }} units)</td>
+                <td class="amount pos">+ {{ fmt_saved }}</td>
+            </tr>
+            <tr>
+                <td><b>WASTED PRODUCTION</b></td>
+                <td>Capital burned on failed projects we missed ({{ data.missed_flops }} units)</td>
+                <td class="amount neg">- {{ fmt_wasted }}</td>
+            </tr>
+            <tr>
+                <td><b>OPPORTUNITY COST</b></td>
+                <td>Potential value lost from false alarms ({{ data.wrong_kills }} units)</td>
+                <td class="amount neg">- {{ fmt_lost }}</td>
+            </tr>
+            <tr style="background-color: #eee;">
+                <td><b>NET TOTAL</b></td>
+                <td><i>Total Operational Efficiency Gain/Loss</i></td>
+                <td class="amount" style="color: {{ verdict_color }};">{{ fmt_net }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="font-weight: bold; margin-bottom: 10px; margin-top: 30px;">TOP 25 VALUE GENERATORS</div>
+    <table class="ledger-table">
+        <thead>
+            <tr>
+                <th width="50%">MANGA TITLE</th>
+                <th width="20%">ACTION</th>
+                <th width="30%" style="text-align: right;">VALUE REALISED</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in data.ledger %}
+            <tr>
+                <td><b>{{ item.title }}</b></td>
+                <td style="font-size: 10px; text-transform: uppercase;">{{ item.desc }}</td>
+                <td class="amount {{ item.css }}">
+                    {% if item.value > 0 %}+{% endif %}${{ "{:,.0f}".format(item.value) }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="kpi-row">
+        <div class="kpi-box">
+            <span class="kpi-val" style="color: {{ verdict_color }};">{{ fmt_roi }}</span>
+            <span class="kpi-lbl">ROI %</span>
+        </div>
+        <div class="kpi-box">
+            <span class="kpi-val">{{ data.correct_kills }}</span>
+            <span class="kpi-lbl">Correct Kills</span>
+        </div>
+        <div class="kpi-box">
+            <span class="kpi-val" style="color: #C73E1D;">{{ data.wrong_kills }}</span>
+            <span class="kpi-lbl">False Alarms</span>
+        </div>
+    </div>
+
+    <div style="margin-top: 40px; font-size: 10px; color: #555; padding: 10px; border-left: 3px solid #000;">
+        <b>STRATEGIC NOTE:</b><br>
+        {{ verdict_text }}<br>
+        This projection assumes a production cost of $50k per failed series and a $500k valuation for successful hits. 
+        Adjust thresholds to optimize the False Alarm rate.
+    </div>
+
+    <div class="footer">
+        Generated by Manga Survival Engine v2.0
+    </div>
+
+</body>
+</html>
